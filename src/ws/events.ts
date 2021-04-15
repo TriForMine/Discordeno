@@ -61,6 +61,7 @@ export function log(
     | "DEBUG",
   data: unknown,
 ) {
-  if (type !== "RAW" && type !== "DEBUG")
+  if (type !== "RAW" && type !== "DEBUG") {
     console.log(type, data);
+  }
 }
