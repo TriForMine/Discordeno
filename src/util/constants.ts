@@ -7,6 +7,9 @@ export const API_VERSION = 8;
 /** https://discord.com/developers/docs/topics/gateway#gateways-gateway-versions */
 export const GATEWAY_VERSION = 8;
 
+/** https://discord.com/developers/docs/topics/voice-connections#voice-gateway-versioning-gateway-versions */
+export const VOICE_GATEWAY_VERSION = 4;
+
 /** https://github.com/discordeno/discordeno/releases */
 export const DISCORDENO_VERSION = 11;
 
@@ -106,6 +109,8 @@ export const endpoints = {
   GUILD_MEMBERS: (guildId: string) => `${GUILDS_BASE(guildId)}/members`,
   GUILD_MEMBER_ROLE: (guildId: string, memberId: string, roleId: string) =>
     `${GUILDS_BASE(guildId)}/members/${memberId}/roles/${roleId}`,
+  GUILD_MEMBERS_SEARCH: (guildId: string) =>
+    `${GUILDS_BASE(guildId)}/members/search`,
   GUILD_PRUNE: (guildId: string) => `${GUILDS_BASE(guildId)}/prune`,
   GUILD_REGIONS: (guildId: string) => `${GUILDS_BASE(guildId)}/regions`,
   GUILD_ROLE: (guildId: string, roleId: string) =>

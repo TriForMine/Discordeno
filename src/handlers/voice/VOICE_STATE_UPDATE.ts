@@ -23,7 +23,7 @@ export async function handleVoiceStateUpdate(data: DiscordGatewayPayload) {
 
   const member = payload.member
     ? await structures.createDiscordenoMember(
-      camelKeysToSnakeCase<DiscordGuildMemberWithUser>(payload.member),
+      camelKeysToSnakeCase<DiscordGuildMemberWithUser>(payload),
       guild.id,
     )
     : await cacheHandlers.get("members", payload.userId);

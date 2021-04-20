@@ -1,4 +1,3 @@
-import { DiscordGatewayOpcodes } from "../types/codes/gateway_opcodes.ts";
 import { Collection } from "../util/collection.ts";
 import { cleanupLoadingShards } from "./cleanup_loading_shards.ts";
 import { createShard } from "./create_shard.ts";
@@ -12,6 +11,15 @@ import { resharder } from "./resharder.ts";
 import { spawnShards } from "./spawn_shards.ts";
 import { startGateway } from "./start_gateway.ts";
 import { tellClusterToIdentify } from "./tell_cluster_to_identify.ts";
+import { DiscordGatewayOpcodes } from "../types/codes/gateway_opcodes.ts";
+import { DiscordVoiceOpcodes } from "../types/codes/voice_opcodes.ts";
+import { createVoiceConnection } from "./voice/create_voice_connection.ts";
+import { handleOnMessageVoice } from "./voice/handle_on_message_voice.ts";
+import { setupVoiceConnection } from "./voice/setup_voice_connection.ts";
+import { voiceHeartbeat } from "./voice/voice_heartbeat.ts";
+import { voiceIdentify } from "./voice/voice_identify.ts";
+import { createUdpConnection } from "./voice/create_udp_connection.ts";
+import { sendVoice } from "./voice/send_voice.ts";
 
 // CONTROLLER LIKE INTERFACE FOR WS HANDLING
 export const ws = {
@@ -68,6 +76,8 @@ export const ws = {
     },
   },
   shards: new Collection<number, DiscordenoShard>(),
+  /** guildId,  */
+  voiceShards: new Collection<string, DiscordenoVoiceShard>(),
   loadingShards: new Collection<
     number,
     {
@@ -110,6 +120,15 @@ export const ws = {
   handleOnMessage,
   /** Handles processing queue of requests send to this shard */
   processQueue,
+
+  // VOICE RELATED
+  createVoiceConnection,
+  createUdpConnection,
+  handleOnMessageVoice,
+  setupVoiceConnection,
+  sendVoice,
+  voiceHeartbeat,
+  voiceIdentify,
 };
 
 export interface DiscordenoShard {
@@ -129,20 +148,7 @@ export interface DiscordenoShard {
   ready: boolean;
   /** The list of guild ids that are currently unavailable due to an outage. */
   unavailableGuildIds: Set<string>;
-  heartbeat: {
-    /** The exact timestamp the last heartbeat was sent */
-    lastSentAt: number;
-    /** The timestamp the last heartbeat ACK was received from discord. */
-    lastReceivedAt: number;
-    /** Whether or not the heartbeat was acknowledged  by discord in time. */
-    acknowledged: boolean;
-    /** Whether or not to keep heartbeating. Useful for when needing to stop heartbeating. */
-    keepAlive: boolean;
-    /** The interval between heartbeats requested by discord. */
-    interval: number;
-    /** The id of the interval, useful for stopping the interval if ws closed. */
-    intervalId: number;
-  };
+  heartbeat: Heartbeat;
   /** The items/requestst that are in queue to be sent to this shard websocket. */
   queue: WebSocketRequest[];
   /** Whether or not the queue for this shard is being processed. */
@@ -154,10 +160,56 @@ export interface DiscordenoShard {
 }
 
 export interface WebSocketRequest {
-  op: DiscordGatewayOpcodes;
+  op: DiscordGatewayOpcodes | DiscordVoiceOpcodes;
   d: unknown;
-  // guildId: string;
-  // shardId: number;
-  // nonce?: string;
-  // options?: Record<string, unknown>;
+}
+
+export interface DiscordenoVoiceShard {
+  /** The websocket for this shard */
+  ws: WebSocket;
+  /** The token for this connection, received from VOICE_SERVER_UPDATE event when joining a voice channel */
+  token?: string;
+  /** The url for this connection, received from VOICE_SERVER_UPDATE event when joining a voice channel */
+  url?: string;
+  /** The sessionId for this connection, received from VOICE_STATE_UPDATE event when joining a voice channel */
+  sessionId?: string;
+  /** The channelId for this connection, received from VOICE_STATE_UPDATE event when joining a voice channel */
+  channelId?: string;
+  /** The shards ssrc received from discords hello event */
+  ssrc?: number;
+  /** The shards ip which we need to connect to received from discords hello event */
+  ip?: string;
+  /** The shards port which we need to connect to received from discords hello event */
+  port?: number;
+  /** The shards available modes we can use when connecting received from discords hello event */
+  modes?: string;
+  heartbeat: Heartbeat;
+  // deno-lint-ignore no-explicit-any
+  udp: any;
+  sequence: number;
+  timestamp: number;
+  nonce: Uint8Array;
+  view?: DataView;
+  frame?: Uint8Array;
+  address?: {
+    port: number;
+    hostname: string;
+    transport: "udp";
+  };
+  secretKey: number[];
+}
+
+export interface Heartbeat {
+  /** The exact timestamp the last heartbeat was sent */
+  lastSentAt: number;
+  /** The timestamp the last heartbeat ACK was received from discord. */
+  lastReceivedAt: number;
+  /** Whether or not the heartbeat was acknowledged  by discord in time. */
+  acknowledged: boolean;
+  /** Whether or not to keep heartbeating. Useful for when needing to stop heartbeating. */
+  keepAlive: boolean;
+  /** The interval between heartbeats requested by discord. */
+  interval: number;
+  /** The id of the interval, useful for stopping the interval if ws closed. */
+  intervalId: number;
 }

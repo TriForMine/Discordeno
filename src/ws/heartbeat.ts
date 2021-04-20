@@ -5,12 +5,18 @@ import { identify } from "./identify.ts";
 import { ws } from "./ws.ts";
 
 export async function heartbeat(shardId: number, interval: number) {
-  ws.log("HEARTBEATING_STARTED", { shardId, interval });
+  ws.log(
+    "HEARTBEATING_STARTED",
+    { shardId, interval },
+  );
 
   const shard = ws.shards.get(shardId);
   if (!shard) return;
 
-  ws.log("HEARTBEATING_DETAILS", { shardId, interval, shard });
+  ws.log(
+    "HEARTBEATING_DETAILS",
+    { shardId, interval, shard },
+  );
 
   // The first heartbeat is special so we send it without setInterval: https://discord.com/developers/docs/topics/gateway#heartbeating
   await delay(Math.floor(shard.heartbeat.interval * Math.random()));
